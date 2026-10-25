@@ -1,0 +1,145 @@
+extends Node3D
+
+@export var maze_width: int = 17
+@export var maze_height: int = 17
+@export var cell_size: float = 2.0
+@export var wall_height: float = 2.5
+@export var wall_thickness: float = 0.25
+@export var wall_color: Color = Color(0.78, 0.72, 0.68)
+@export var floor_color: Color = Color(0.14, 0.18, 0.2)
+
+func _ready() -> void:
+    generate_maze()
+
+func generate_maze() -> void:
+    for child in get_children():
+        if child.name.begins_with("Generated"):
+            child.queue_free()
+
+    if maze_width % 2 == 0:
+        maze_width += 1
+    if maze_height % 2 == 0:
+        maze_height += 1
+
+    var grid: Array = []
+    for x in range(maze_width):
+        grid.append([])
+        for z in range(maze_height):
+            grid[x].append({
+                "visited": false,
+                "walls": {"N": true, "E": true, "S": true, "W": true}
+            })
+
+    var stack: Array = [Vector2i(1, 1)]
+    grid[1][1]["visited"] = true
+
+    while not stack.is_empty():
+        var current: Vector2i = stack.back()
+        var options: Array = []
+        var directions: Array = [
+            Vector2i(-2, 0),
+            Vector2i(2, 0),
+            Vector2i(0, -2),
+            Vector2i(0, 2)
+        ]
+
+        for delta in directions:
+            var next := current + delta
+            if next.x <= 0 or next.x >= maze_width - 1:
+                continue
+            if next.y <= 0 or next.y >= maze_height - 1:
+                continue
+            if grid[next.x][next.y]["visited"]:
+                continue
+            options.append(next)
+
+        if options.is_empty():
+            stack.pop_back()
+            continue
+
+        var next: Vector2i = options[randi() % options.size()]
+        var wall_delta := next - current
+
+        if wall_delta.x < 0:
+            grid[current.x][current.y]["walls"]["W"] = false
+            grid[next.x][next.y]["walls"]["E"] = false
+        elif wall_delta.x > 0:
+            grid[current.x][current.y]["walls"]["E"] = false
+            grid[next.x][next.y]["walls"]["W"] = false
+        elif wall_delta.y < 0:
+            grid[current.x][current.y]["walls"]["N"] = false
+            grid[next.x][next.y]["walls"]["S"] = false
+        elif wall_delta.y > 0:
+            grid[current.x][current.y]["walls"]["S"] = false
+            grid[next.x][next.y]["walls"]["N"] = false
+
+        grid[next.x][next.y]["visited"] = true
+        stack.push_back(next)
+
+    add_floor()
+    for x in range(maze_width):
+        for z in range(maze_height):
+            var cell_center := Vector3(
+                (x - float(maze_width - 1) / 2.0) * cell_size,
+                0.0,
+                (z - float(maze_height - 1) / 2.0) * cell_size
+            )
+            var cell_data = grid[x][z]
+
+            if cell_data["walls"]["N"]:
+                add_wall(
+                    cell_center + Vector3(0.0, wall_height / 2.0, -cell_size / 2.0),
+                    Vector3(cell_size, wall_height, wall_thickness),
+                    "N_%d_%d" % [x, z]
+                )
+            if cell_data["walls"]["E"]:
+                add_wall(
+                    cell_center + Vector3(cell_size / 2.0, wall_height / 2.0, 0.0),
+                    Vector3(wall_thickness, wall_height, cell_size),
+                    "E_%d_%d" % [x, z]
+                )
+            if cell_data["walls"]["S"]:
+                add_wall(
+                    cell_center + Vector3(0.0, wall_height / 2.0, cell_size / 2.0),
+                    Vector3(cell_size, wall_height, wall_thickness),
+                    "S_%d_%d" % [x, z]
+                )
+            if cell_data["walls"]["W"]:
+                add_wall(
+                    cell_center + Vector3(-cell_size / 2.0, wall_height / 2.0, 0.0),
+                    Vector3(wall_thickness, wall_height, cell_size),
+                    "W_%d_%d" % [x, z]
+                )
+
+func add_floor() -> void:
+    var floor_mesh := BoxMesh.new()
+    floor_mesh.size = Vector3(maze_width * cell_size, 0.2, maze_height * cell_size)
+
+    var floor_instance := MeshInstance3D.new()
+    floor_instance.name = "GeneratedFloor"
+    floor_instance.mesh = floor_mesh
+    floor_instance.position = Vector3(0.0, -0.15, 0.0)
+
+    var material := StandardMaterial3D.new()
+    material.albedo_color = floor_color
+    material.roughness = 0.9
+    floor_instance.material_override = material
+
+    add_child(floor_instance)
+
+func add_wall(position: Vector3, size: Vector3, name_suffix: String) -> void:
+    var wall_mesh := BoxMesh.new()
+    wall_mesh.size = Vector3(1.0, 1.0, 1.0)
+
+    var wall_instance := MeshInstance3D.new()
+    wall_instance.name = "GeneratedWall_" + name_suffix
+    wall_instance.mesh = wall_mesh
+    wall_instance.scale = size
+    wall_instance.position = position
+
+    var material := StandardMaterial3D.new()
+    material.albedo_color = wall_color
+    material.roughness = 0.8
+    wall_instance.material_override = material
+
+    add_child(wall_instance)
