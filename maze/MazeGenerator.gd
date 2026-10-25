@@ -46,19 +46,20 @@ func generate_maze() -> void:
 
         for delta in directions:
             var next_cell: Vector2i = current + delta
-            var is_valid := next_cell.x > 0 and next_cell.x < maze_width - 1
-            is_valid = is_valid and next_cell.y > 0 and next_cell.y < maze_height - 1
-            is_valid = is_valid and not grid[next_cell.y][next_cell.x]["visited"]
-            if is_valid:
-                options.append(next_cell)
+            if next_cell.x <= 0 or next_cell.x >= maze_width - 1:
+                continue
+            if next_cell.y <= 0 or next_cell.y >= maze_height - 1:
+                continue
+            if grid[next_cell.y][next_cell.x]["visited"]:
+                continue
+            options.append(delta)
 
         if options.is_empty():
             stack.pop_back()
             continue
 
-        var next_cell: Vector2i = options[randi() % options.size()]
-        var delta: Vector2i = next_cell - current
-
+        var delta: Vector2i = options[randi() % options.size()]
+        var next_cell: Vector2i = current + delta
         var wall_cell: Vector2i = current + (delta / 2)
 
         if delta.x > 0:
