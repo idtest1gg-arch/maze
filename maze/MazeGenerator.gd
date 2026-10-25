@@ -76,14 +76,14 @@ func create_floor() -> void:
     var floor_box := BoxShape3D.new()
     floor_box.size = Vector3(maze_width * cell_size, 0.2, maze_height * cell_size)
     floor_shape.shape = floor_box
-    floor_shape.position = Vector3(0.0, -0.15, 0.0)
+    floor_shape.position = Vector3(0.0, -0.1, 0.0)
     floor_body.add_child(floor_shape)
 
     var floor_mesh := MeshInstance3D.new()
     var floor_box_mesh := BoxMesh.new()
     floor_box_mesh.size = Vector3(maze_width * cell_size, 0.2, maze_height * cell_size)
     floor_mesh.mesh = floor_box_mesh
-    floor_mesh.position = Vector3(0.0, -0.15, 0.0)
+    floor_mesh.position = Vector3(0.0, -0.1, 0.0)
 
     var material := StandardMaterial3D.new()
     material.albedo_color = floor_color
@@ -112,6 +112,7 @@ func add_wall_block(position: Vector3) -> void:
     var wall_shape := BoxShape3D.new()
     wall_shape.size = Vector3(cell_size, wall_height, cell_size)
     collision.shape = wall_shape
+    collision.position = Vector3(0.0, 0.0, 0.0)
     wall_body.add_child(collision)
 
     var wall_mesh := MeshInstance3D.new()
