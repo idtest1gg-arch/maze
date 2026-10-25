@@ -14,8 +14,17 @@ var yaw: float = 0.0
 @onready var flashlight: SpotLight3D = $Camera3D/SpotLight3D
 
 func _ready() -> void:
+    _build_collision_shape()
     Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
     update_look()
+
+func _build_collision_shape() -> void:
+    var collision := CollisionShape3D.new()
+    var capsule := CapsuleShape3D.new()
+    capsule.radius = 0.35
+    capsule.height = 1.2
+    collision.shape = capsule
+    add_child(collision)
 
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
@@ -24,10 +33,10 @@ func _unhandled_input(event: InputEvent) -> void:
         pitch = clamp(pitch, min_pitch, max_pitch)
         update_look()
 
-    if event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
+    elif event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
         Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 
-    if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed() and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+    elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed() and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
         Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 func _physics_process(delta: float) -> void:
@@ -41,29 +50,29 @@ func _physics_process(delta: float) -> void:
     if Input.is_key_pressed(KEY_D):
         input_dir.x += 1
 
-    input_dir = input_dir.normalized()
+    if input_dir.length_squared() > 0.0:
+        input_dir = input_dir.normalized()
 
-    var basis := Basis()
-    basis = Basis(Vector3.UP, yaw)
-    var move_dir := Vector3.ZERO
-    move_dir = basis.x * input_dir.x + basis.z * input_dir.y
-    move_dir = move_dir.normalized()
+    var forward: Vector3 = -global_transform.basis.z
+    var right: Vector3 = global_transform.basis.x
+    var move_dir: Vector3 = (forward * input_dir.y + right * input_dir.x)
+    move_dir.y = 0.0
 
     if move_dir.length_squared() > 0.0:
+        move_dir = move_dir.normalized()
         velocity.x = move_dir.x * speed
         velocity.z = move_dir.z * speed
-        velocity.y = 0.0
     else:
         velocity.x = move_toward(velocity.x, 0.0, friction)
         velocity.z = move_toward(velocity.z, 0.0, friction)
 
+    velocity.y = 0.0
     move_and_slide()
-    camera.rotation.x = pitch
-    flashlight.rotation.x = 0.0
-    flashlight.rotation.y = 0.0
 
 func update_look() -> void:
     rotation.y = yaw
     camera.rotation.x = pitch
     camera.rotation.y = 0.0
     camera.rotation.z = 0.0
+    flashlight.rotation.x = 0.0
+    flashlight.rotation.y = 0.0

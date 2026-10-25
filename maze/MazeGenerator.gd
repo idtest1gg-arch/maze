@@ -112,7 +112,6 @@ func add_wall_block(position: Vector3) -> void:
     var wall_shape := BoxShape3D.new()
     wall_shape.size = Vector3(cell_size, wall_height, cell_size)
     collision.shape = wall_shape
-    collision.position = Vector3.ZERO
     wall_body.add_child(collision)
 
     var wall_mesh := MeshInstance3D.new()
@@ -120,7 +119,6 @@ func add_wall_block(position: Vector3) -> void:
     box_mesh.size = Vector3(1.0, 1.0, 1.0)
     wall_mesh.mesh = box_mesh
     wall_mesh.scale = Vector3(cell_size, wall_height, cell_size)
-    wall_mesh.position = Vector3.ZERO
 
     var material := StandardMaterial3D.new()
     material.albedo_color = wall_color

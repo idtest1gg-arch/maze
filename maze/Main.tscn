@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://MazeGenerator.gd" id="1"]
 [ext_resource type="Script" path="res://Player.gd" id="2"]
@@ -16,18 +16,12 @@ script = ExtResource("2")
 speed = 4.5
 mouse_sensitivity = 0.0025
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
-shape = CapsuleShape3D.new()
-shape.radius = 0.35
-shape.height = 1.2
-
 [node name="Camera3D" type="Camera3D" parent="Player"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
 current = true
 fov = 75.0
 
 [node name="SpotLight3D" type="SpotLight3D" parent="Player/Camera3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 light_energy = 2.2
 spot_range = 16.0
 spot_angle = 32.0
