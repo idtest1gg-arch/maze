@@ -58,13 +58,12 @@ func _unhandled_input(event: InputEvent) -> void:
         Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 func _physics_process(delta: float) -> void:
-    apply_camera_bob(delta)
-
     if free_camera:
         update_free_camera(delta)
         return
 
     update_walk_movement(delta)
+    apply_camera_bob(delta)
 
 func update_walk_movement(delta: float) -> void:
     var input_dir := Vector2.ZERO
@@ -123,22 +122,22 @@ func update_free_camera(delta: float) -> void:
 func apply_camera_bob(delta: float) -> void:
     var move_speed: float = velocity.length()
     if move_speed > 0.1:
-        bob_time += delta * bob_frequency * (move_speed / speed)
+        bob_time += delta * bob_frequency * (move_speed / max(speed, 0.001))
     else:
         bob_time = lerp(bob_time, 0.0, delta * 10.0)
 
-    var bob_target := Vector3.ZERO
-    bob_target.x = sin(bob_time * 2.0) * bob_amplitude * 0.5
-    bob_target.y = abs(sin(bob_time)) * bob_vertical
-    bob_target.z = cos(bob_time * 2.0) * bob_amplitude * 0.2
+    var bob_strength: float = 0.0
+    if move_speed > 0.1:
+        bob_strength = clamp(move_speed / max(speed, 0.001), 0.0, 1.0)
 
-    var shake_amount := clamp(move_speed / (speed * 1.2), 0.0, 1.0)
-    var shake := Vector3(
-        sin(bob_time * 7.0) * 0.008 * shake_amount,
-        cos(bob_time * 9.0) * 0.006 * shake_amount,
-        0.0
-    )
+    var bob_target_x: float = sin(bob_time * 2.0) * bob_amplitude * 0.5
+    var bob_target_y: float = abs(sin(bob_time)) * bob_vertical
+    var bob_target_z: float = cos(bob_time * 2.0) * bob_amplitude * 0.2
+    var shake_x: float = sin(bob_time * 7.0) * 0.008 * bob_strength
+    var shake_y: float = cos(bob_time * 9.0) * 0.006 * bob_strength
 
+    var bob_target := Vector3(bob_target_x, bob_target_y, bob_target_z)
+    var shake := Vector3(shake_x, shake_y, 0.0)
     camera.position = camera_base_position + bob_target + shake
 
 func play_step_sound(delta: float) -> void:
