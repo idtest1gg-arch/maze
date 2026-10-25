@@ -28,7 +28,7 @@ func generate_maze() -> void:
         grid.append(row)
 
     carve_maze(grid, Vector2i(1, 1))
-    create_floor(grid)
+    create_floor()
     create_walls(grid)
 
 func carve_maze(grid: Array, start: Vector2i) -> void:
@@ -38,7 +38,6 @@ func carve_maze(grid: Array, start: Vector2i) -> void:
     while not stack.is_empty():
         var current: Vector2i = stack.back()
         var options: Array = []
-
         var directions: Array = [
             Vector2i(2, 0),
             Vector2i(-2, 0),
@@ -69,20 +68,30 @@ func carve_maze(grid: Array, start: Vector2i) -> void:
         grid[next.y][next.x] = 0
         stack.push_back(next)
 
-func create_floor(grid: Array) -> void:
-    var floor_mesh := BoxMesh.new()
-    floor_mesh.size = Vector3(maze_width * cell_size, 0.2, maze_height * cell_size)
+func create_floor() -> void:
+    var floor_body := StaticBody3D.new()
+    floor_body.name = "GeneratedFloor"
 
-    var floor_instance := MeshInstance3D.new()
-    floor_instance.name = "GeneratedFloor"
-    floor_instance.mesh = floor_mesh
-    floor_instance.position = Vector3(0.0, -0.15, 0.0)
+    var floor_shape := CollisionShape3D.new()
+    var floor_box := BoxShape3D.new()
+    floor_box.size = Vector3(maze_width * cell_size, 0.2, maze_height * cell_size)
+    floor_shape.shape = floor_box
+    floor_shape.position = Vector3(0.0, -0.15, 0.0)
+    floor_body.add_child(floor_shape)
+
+    var floor_mesh := MeshInstance3D.new()
+    var floor_box_mesh := BoxMesh.new()
+    floor_box_mesh.size = Vector3(maze_width * cell_size, 0.2, maze_height * cell_size)
+    floor_mesh.mesh = floor_box_mesh
+    floor_mesh.position = Vector3(0.0, -0.15, 0.0)
 
     var material := StandardMaterial3D.new()
     material.albedo_color = floor_color
     material.roughness = 0.9
-    floor_instance.material_override = material
-    add_child(floor_instance)
+    floor_mesh.material_override = material
+
+    floor_body.add_child(floor_mesh)
+    add_child(floor_body)
 
 func create_walls(grid: Array) -> void:
     for y in range(maze_height):
@@ -95,17 +104,28 @@ func create_walls(grid: Array) -> void:
             add_wall_block(Vector3(world_x, wall_height * 0.5, world_z))
 
 func add_wall_block(position: Vector3) -> void:
-    var wall_mesh := BoxMesh.new()
-    wall_mesh.size = Vector3(1.0, 1.0, 1.0)
+    var wall_body := StaticBody3D.new()
+    wall_body.name = "GeneratedWall"
+    wall_body.position = position
 
-    var wall_instance := MeshInstance3D.new()
-    wall_instance.name = "GeneratedWall"
-    wall_instance.mesh = wall_mesh
-    wall_instance.scale = Vector3(cell_size, wall_height, cell_size)
-    wall_instance.position = position
+    var collision := CollisionShape3D.new()
+    var wall_shape := BoxShape3D.new()
+    wall_shape.size = Vector3(cell_size, wall_height, cell_size)
+    collision.shape = wall_shape
+    collision.position = Vector3.ZERO
+    wall_body.add_child(collision)
+
+    var wall_mesh := MeshInstance3D.new()
+    var box_mesh := BoxMesh.new()
+    box_mesh.size = Vector3(1.0, 1.0, 1.0)
+    wall_mesh.mesh = box_mesh
+    wall_mesh.scale = Vector3(cell_size, wall_height, cell_size)
+    wall_mesh.position = Vector3.ZERO
 
     var material := StandardMaterial3D.new()
     material.albedo_color = wall_color
     material.roughness = 0.8
-    wall_instance.material_override = material
-    add_child(wall_instance)
+    wall_mesh.material_override = material
+
+    wall_body.add_child(wall_mesh)
+    add_child(wall_body)
