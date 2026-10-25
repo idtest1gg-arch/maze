@@ -11,6 +11,7 @@ extends CharacterBody3D
 @export var bob_amplitude: float = 0.025
 @export var bob_vertical: float = 0.045
 @export var free_fly_speed: float = 8.0
+@export var flashlight_drain_per_second: float = 4.5
 
 var pitch: float = -0.5
 var yaw: float = 0.0
@@ -19,14 +20,17 @@ var camera_base_position: Vector3
 var free_camera: bool = false
 var step_timer: float = 0.0
 var step_interval: float = 0.45
+var flashlight_battery: float = 100.0
 
 @onready var camera: Camera3D = $Camera3D
 @onready var flashlight: SpotLight3D = $Camera3D/SpotLight3D
 @onready var footstep_audio: AudioStreamPlayer = $AudioStreamPlayer
+@onready var battery_label: Label = $"../CanvasLayer/BatteryLabel"
 
 func _ready() -> void:
     camera_base_position = camera.position
     Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+    update_flashlight_ui()
     update_look()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -48,6 +52,8 @@ func _unhandled_input(event: InputEvent) -> void:
         Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 func _physics_process(delta: float) -> void:
+    update_flashlight(delta)
+
     if free_camera:
         update_free_camera(delta)
         return
@@ -97,9 +103,9 @@ func update_free_camera(delta: float) -> void:
         move_vec -= transform.basis.x
     if Input.is_key_pressed(KEY_D):
         move_vec += transform.basis.x
-    if Input.is_key_pressed(KEY_SPACE):
+    if Input.is_key_pressed(KEY_I):
         move_vec.y += 1.0
-    if Input.is_key_pressed(KEY_CTRL):
+    if Input.is_key_pressed(KEY_O):
         move_vec.y -= 1.0
 
     if move_vec.length_squared() > 0.0:
@@ -136,6 +142,24 @@ func play_step_sound(delta: float) -> void:
             footstep_audio.volume_db = -10.0 + randf_range(-1.5, 1.0)
             footstep_audio.play()
         step_timer = step_interval
+
+func update_flashlight(delta: float) -> void:
+    if flashlight == null or battery_label == null:
+        return
+
+    if flashlight_battery > 0.0:
+        flashlight_battery -= flashlight_drain_per_second * delta
+        flashlight.light_energy = 2.2
+    else:
+        flashlight.light_energy = 0.0
+
+    flashlight_battery = clamp(flashlight_battery, 0.0, 100.0)
+    update_flashlight_ui()
+
+func update_flashlight_ui() -> void:
+    if battery_label == null:
+        return
+    battery_label.text = "BATTERY: %d%%" % int(flashlight_battery)
 
 func update_look() -> void:
     rotation.y = yaw

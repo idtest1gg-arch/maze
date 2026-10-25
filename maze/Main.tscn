@@ -24,6 +24,7 @@ bob_frequency = 8.0
 bob_amplitude = 0.025
 bob_vertical = 0.045
 free_fly_speed = 8.0
+flashlight_drain_per_second = 4.5
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
 shape = SubResource("CapsuleShape3D_1")
@@ -42,6 +43,16 @@ shadow_enabled = true
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="Player"]
 stream = ExtResource("3")
 volume_db = -10.0
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="BatteryLabel" type="Label" parent="CanvasLayer"]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 220.0
+offset_bottom = 60.0
+text = "BATTERY: 100%"
+theme_override_font_sizes/font_size = 20
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(270, 0, 0)

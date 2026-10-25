@@ -7,8 +7,21 @@ extends Node3D
 @export var wall_color: Color = Color(0.92, 0.88, 0.8)
 @export var floor_color: Color = Color(0.12, 0.14, 0.16)
 
+var wall_material: StandardMaterial3D
+
 func _ready() -> void:
+    wall_material = create_wall_material()
     generate_maze()
+
+func create_wall_material() -> StandardMaterial3D:
+    var material := StandardMaterial3D.new()
+    material.albedo_texture = load("res://2K/Poliigon_BrickReclaimedRunning_7787_BaseColor.jpg")
+    material.normal_texture = load("res://2K/Poliigon_BrickReclaimedRunning_7787_Normal.png")
+    material.roughness_texture = load("res://2K/Poliigon_BrickReclaimedRunning_7787_Roughness.jpg")
+    material.ao_texture = load("res://2K/Poliigon_BrickReclaimedRunning_7787_AmbientOcclusion.jpg")
+    material.uv1_scale = Vector3(0.8, 0.8, 1.0)
+    material.uv1_triplanar = true
+    return material
 
 func generate_maze() -> void:
     for child in get_children():
@@ -76,14 +89,14 @@ func create_floor() -> void:
     var floor_box := BoxShape3D.new()
     floor_box.size = Vector3(maze_width * cell_size, 0.2, maze_height * cell_size)
     floor_shape.shape = floor_box
-    floor_shape.position = Vector3(0.0, -0.1, 0.0)
+    floor_shape.position = Vector3(0.0, -0.01, 0.0)
     floor_body.add_child(floor_shape)
 
     var floor_mesh := MeshInstance3D.new()
     var floor_box_mesh := BoxMesh.new()
     floor_box_mesh.size = Vector3(maze_width * cell_size, 0.2, maze_height * cell_size)
     floor_mesh.mesh = floor_box_mesh
-    floor_mesh.position = Vector3(0.0, -0.1, 0.0)
+    floor_mesh.position = Vector3(0.0, -0.01, 0.0)
 
     var material := StandardMaterial3D.new()
     material.albedo_color = floor_color
@@ -101,18 +114,17 @@ func create_walls(grid: Array) -> void:
 
             var world_x: float = (x - (maze_width - 1) / 2.0) * cell_size
             var world_z: float = (y - (maze_height - 1) / 2.0) * cell_size
-            add_wall_block(Vector3(world_x, wall_height * 0.5, world_z))
+            add_wall_block(Vector3(world_x, 0.0, world_z))
 
 func add_wall_block(position: Vector3) -> void:
     var wall_body := StaticBody3D.new()
     wall_body.name = "GeneratedWall"
-    wall_body.position = position
+    wall_body.position = Vector3(position.x, wall_height * 0.5 - 0.02, position.z)
 
     var collision := CollisionShape3D.new()
     var wall_shape := BoxShape3D.new()
     wall_shape.size = Vector3(cell_size, wall_height, cell_size)
     collision.shape = wall_shape
-    collision.position = Vector3(0.0, 0.0, 0.0)
     wall_body.add_child(collision)
 
     var wall_mesh := MeshInstance3D.new()
@@ -120,11 +132,9 @@ func add_wall_block(position: Vector3) -> void:
     box_mesh.size = Vector3(1.0, 1.0, 1.0)
     wall_mesh.mesh = box_mesh
     wall_mesh.scale = Vector3(cell_size, wall_height, cell_size)
+    wall_mesh.position = Vector3.ZERO
 
-    var material := StandardMaterial3D.new()
-    material.albedo_color = wall_color
-    material.roughness = 0.8
-    wall_mesh.material_override = material
+    wall_mesh.material_override = wall_material
 
     wall_body.add_child(wall_mesh)
     add_child(wall_body)
