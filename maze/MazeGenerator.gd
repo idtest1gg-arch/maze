@@ -22,13 +22,14 @@ func generate_maze() -> void:
         maze_height += 1
 
     var grid: Array = []
-    for x in range(maze_width):
-        grid.append([])
-        for z in range(maze_height):
-            grid[x].append({
+    for y in range(maze_height):
+        var row: Array = []
+        for x in range(maze_width):
+            row.append({
                 "visited": false,
                 "walls": {"N": true, "E": true, "S": true, "W": true}
             })
+        grid.append(row)
 
     var stack: Array = [Vector2i(1, 1)]
     grid[1][1]["visited"] = true
@@ -37,78 +38,78 @@ func generate_maze() -> void:
         var current: Vector2i = stack.back()
         var options: Array = []
         var directions: Array = [
-            Vector2i(-2, 0),
-            Vector2i(2, 0),
             Vector2i(0, -2),
-            Vector2i(0, 2)
+            Vector2i(2, 0),
+            Vector2i(0, 2),
+            Vector2i(-2, 0)
         ]
 
         for delta in directions:
-            var next := current + delta
-            if next.x <= 0 or next.x >= maze_width - 1:
-                continue
-            if next.y <= 0 or next.y >= maze_height - 1:
-                continue
-            if grid[next.x][next.y]["visited"]:
-                continue
-            options.append(next)
+            var next_cell: Vector2i = current + delta
+            var is_valid := next_cell.x > 0 and next_cell.x < maze_width - 1
+            is_valid = is_valid and next_cell.y > 0 and next_cell.y < maze_height - 1
+            is_valid = is_valid and not grid[next_cell.y][next_cell.x]["visited"]
+            if is_valid:
+                options.append(next_cell)
 
         if options.is_empty():
             stack.pop_back()
             continue
 
-        var next: Vector2i = options[randi() % options.size()]
-        var wall_delta := next - current
+        var next_cell: Vector2i = options[randi() % options.size()]
+        var delta: Vector2i = next_cell - current
 
-        if wall_delta.x < 0:
-            grid[current.x][current.y]["walls"]["W"] = false
-            grid[next.x][next.y]["walls"]["E"] = false
-        elif wall_delta.x > 0:
-            grid[current.x][current.y]["walls"]["E"] = false
-            grid[next.x][next.y]["walls"]["W"] = false
-        elif wall_delta.y < 0:
-            grid[current.x][current.y]["walls"]["N"] = false
-            grid[next.x][next.y]["walls"]["S"] = false
-        elif wall_delta.y > 0:
-            grid[current.x][current.y]["walls"]["S"] = false
-            grid[next.x][next.y]["walls"]["N"] = false
+        var wall_cell: Vector2i = current + (delta / 2)
 
-        grid[next.x][next.y]["visited"] = true
-        stack.push_back(next)
+        if delta.x > 0:
+            grid[current.y][current.x]["walls"]["E"] = false
+            grid[wall_cell.y][wall_cell.x]["walls"]["W"] = false
+        elif delta.x < 0:
+            grid[current.y][current.x]["walls"]["W"] = false
+            grid[wall_cell.y][wall_cell.x]["walls"]["E"] = false
+        elif delta.y > 0:
+            grid[current.y][current.x]["walls"]["S"] = false
+            grid[wall_cell.y][wall_cell.x]["walls"]["N"] = false
+        elif delta.y < 0:
+            grid[current.y][current.x]["walls"]["N"] = false
+            grid[wall_cell.y][wall_cell.x]["walls"]["S"] = false
+
+        grid[next_cell.y][next_cell.x]["visited"] = true
+        stack.push_back(next_cell)
 
     add_floor()
-    for x in range(maze_width):
-        for z in range(maze_height):
+    for y in range(maze_height):
+        for x in range(maze_width):
+            var cell: Dictionary = grid[y][x]
             var cell_center := Vector3(
                 (x - float(maze_width - 1) / 2.0) * cell_size,
                 0.0,
-                (z - float(maze_height - 1) / 2.0) * cell_size
+                (y - float(maze_height - 1) / 2.0) * cell_size
             )
-            var cell_data = grid[x][z]
 
-            if cell_data["walls"]["N"]:
+            if cell["walls"]["N"]:
                 add_wall(
                     cell_center + Vector3(0.0, wall_height / 2.0, -cell_size / 2.0),
                     Vector3(cell_size, wall_height, wall_thickness),
-                    "N_%d_%d" % [x, z]
+                    "N_%d_%d" % [x, y]
                 )
-            if cell_data["walls"]["E"]:
+            if cell["walls"]["E"]:
                 add_wall(
                     cell_center + Vector3(cell_size / 2.0, wall_height / 2.0, 0.0),
                     Vector3(wall_thickness, wall_height, cell_size),
-                    "E_%d_%d" % [x, z]
+                    "E_%d_%d" % [x, y]
                 )
-            if cell_data["walls"]["S"]:
+            if cell["walls"]["S"]:
                 add_wall(
                     cell_center + Vector3(0.0, wall_height / 2.0, cell_size / 2.0),
                     Vector3(cell_size, wall_height, wall_thickness),
-                    "S_%d_%d" % [x, z]
+                    "S_%d_%d" % [x, y]
                 )
-            if cell_data["walls"]["W"]:
+            if cell["walls"]["W"]:
                 add_wall(
                     cell_center + Vector3(-cell_size / 2.0, wall_height / 2.0, 0.0),
                     Vector3(wall_thickness, wall_height, cell_size),
-                    "W_%d_%d" % [x, z]
+                    "W_%d_%d" % [x, y]
                 )
 
 func add_floor() -> void:
