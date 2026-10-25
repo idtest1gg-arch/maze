@@ -10,6 +10,7 @@ maze_height = 17
 cell_size = 2.0
 wall_height = 2.5
 wall_thickness = 0.25
+wall_margin = 0.2
 
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.866025, 0.5, 0, -0.5, 0.866025, 0, 3.5, 7)
@@ -20,6 +21,6 @@ movement_speed = 10.0
 sprint_speed = 18.0
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(0.866025, -0.5, 0, 0.5, 0.866025, 0, 0, 0, 1, 0, 10, 0)
-light_energy = 1.5
+rotation_degrees = Vector3(270, 0, 0)
+light_energy = 1.8
 shadow_enabled = true

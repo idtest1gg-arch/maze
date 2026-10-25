@@ -5,6 +5,7 @@ extends Node3D
 @export var cell_size: float = 2.0
 @export var wall_height: float = 2.5
 @export var wall_thickness: float = 0.25
+@export var wall_margin: float = 0.2
 @export var wall_color: Color = Color(0.78, 0.72, 0.68)
 @export var floor_color: Color = Color(0.14, 0.18, 0.2)
 
@@ -79,6 +80,7 @@ func generate_maze() -> void:
         stack.push_back(next_cell)
 
     add_floor()
+
     for y in range(maze_height):
         for x in range(maze_width):
             var cell: Dictionary = grid[y][x]
@@ -90,26 +92,26 @@ func generate_maze() -> void:
 
             if cell["walls"]["N"]:
                 add_wall(
-                    cell_center + Vector3(0.0, wall_height / 2.0, -cell_size / 2.0),
-                    Vector3(cell_size, wall_height, wall_thickness),
+                    cell_center + Vector3(0.0, wall_height / 2.0, -cell_size / 2.0 + wall_margin),
+                    Vector3(cell_size - wall_margin * 2.0, wall_height, wall_thickness),
                     "N_%d_%d" % [x, y]
                 )
             if cell["walls"]["E"]:
                 add_wall(
-                    cell_center + Vector3(cell_size / 2.0, wall_height / 2.0, 0.0),
-                    Vector3(wall_thickness, wall_height, cell_size),
+                    cell_center + Vector3(cell_size / 2.0 - wall_margin, wall_height / 2.0, 0.0),
+                    Vector3(wall_thickness, wall_height, cell_size - wall_margin * 2.0),
                     "E_%d_%d" % [x, y]
                 )
             if cell["walls"]["S"]:
                 add_wall(
-                    cell_center + Vector3(0.0, wall_height / 2.0, cell_size / 2.0),
-                    Vector3(cell_size, wall_height, wall_thickness),
+                    cell_center + Vector3(0.0, wall_height / 2.0, cell_size / 2.0 - wall_margin),
+                    Vector3(cell_size - wall_margin * 2.0, wall_height, wall_thickness),
                     "S_%d_%d" % [x, y]
                 )
             if cell["walls"]["W"]:
                 add_wall(
-                    cell_center + Vector3(-cell_size / 2.0, wall_height / 2.0, 0.0),
-                    Vector3(wall_thickness, wall_height, cell_size),
+                    cell_center + Vector3(-cell_size / 2.0 + wall_margin, wall_height / 2.0, 0.0),
+                    Vector3(wall_thickness, wall_height, cell_size - wall_margin * 2.0),
                     "W_%d_%d" % [x, y]
                 )
 
