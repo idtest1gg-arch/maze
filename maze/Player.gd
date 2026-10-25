@@ -7,9 +7,9 @@ extends CharacterBody3D
 @export var min_pitch: float = -1.3
 @export var max_pitch: float = 1.3
 
-@export var bob_frequency: float = 10.0
-@export var bob_amplitude: float = 0.04
-@export var bob_vertical: float = 0.06
+@export var bob_frequency: float = 8.0
+@export var bob_amplitude: float = 0.025
+@export var bob_vertical: float = 0.045
 @export var free_fly_speed: float = 8.0
 
 var pitch: float = -0.5
@@ -19,25 +19,15 @@ var camera_base_position: Vector3
 var free_camera: bool = false
 var step_timer: float = 0.0
 var step_interval: float = 0.45
-var current_step_volume: float = -8.0
 
 @onready var camera: Camera3D = $Camera3D
 @onready var flashlight: SpotLight3D = $Camera3D/SpotLight3D
-@onready var footstep_audio: AudioStreamPlayer3D = $AudioStreamPlayer3D
+@onready var footstep_audio: AudioStreamPlayer = $AudioStreamPlayer
 
 func _ready() -> void:
-    _build_collision_shape()
     camera_base_position = camera.position
     Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
     update_look()
-
-func _build_collision_shape() -> void:
-    var collision := CollisionShape3D.new()
-    var capsule := CapsuleShape3D.new()
-    capsule.radius = 0.35
-    capsule.height = 1.2
-    collision.shape = capsule
-    add_child(collision)
 
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventKey and event.is_pressed() and event.keycode == KEY_F4:
@@ -107,10 +97,10 @@ func update_free_camera(delta: float) -> void:
         move_vec -= transform.basis.x
     if Input.is_key_pressed(KEY_D):
         move_vec += transform.basis.x
-    if Input.is_key_pressed(KEY_Q):
-        move_vec.y -= 1.0
-    if Input.is_key_pressed(KEY_E):
+    if Input.is_key_pressed(KEY_SPACE):
         move_vec.y += 1.0
+    if Input.is_key_pressed(KEY_CTRL):
+        move_vec.y -= 1.0
 
     if move_vec.length_squared() > 0.0:
         move_vec = move_vec.normalized() * free_fly_speed
@@ -124,30 +114,27 @@ func apply_camera_bob(delta: float) -> void:
     if move_speed > 0.1:
         bob_time += delta * bob_frequency * (move_speed / max(speed, 0.001))
     else:
-        bob_time = lerp(bob_time, 0.0, delta * 10.0)
+        bob_time = lerp(bob_time, 0.0, delta * 7.0)
 
     var bob_strength: float = 0.0
     if move_speed > 0.1:
         bob_strength = clamp(move_speed / max(speed, 0.001), 0.0, 1.0)
 
-    var bob_target_x: float = sin(bob_time * 2.0) * bob_amplitude * 0.5
-    var bob_target_y: float = abs(sin(bob_time)) * bob_vertical
-    var bob_target_z: float = cos(bob_time * 2.0) * bob_amplitude * 0.2
-    var shake_x: float = sin(bob_time * 7.0) * 0.008 * bob_strength
-    var shake_y: float = cos(bob_time * 9.0) * 0.006 * bob_strength
+    var target_x: float = sin(bob_time * 2.0) * bob_amplitude * 0.6
+    var target_y: float = sin(bob_time * 2.0 + PI * 0.5) * bob_vertical * 0.7
+    var target_z: float = cos(bob_time * 2.0) * bob_amplitude * 0.2
+    var shake_x: float = sin(bob_time * 10.0) * 0.003 * bob_strength
+    var shake_y: float = cos(bob_time * 8.0) * 0.0022 * bob_strength
 
-    var bob_target := Vector3(bob_target_x, bob_target_y, bob_target_z)
-    var shake := Vector3(shake_x, shake_y, 0.0)
-    camera.position = camera_base_position + bob_target + shake
+    camera.position = camera_base_position + Vector3(target_x, target_y, target_z) + Vector3(shake_x, shake_y, 0.0)
 
 func play_step_sound(delta: float) -> void:
     step_timer -= delta
     if step_timer <= 0.0:
-        if footstep_audio and footstep_audio.stream != null:
+        if footstep_audio and footstep_audio.stream != null and not footstep_audio.playing:
             footstep_audio.pitch_scale = 0.95 + randf_range(-0.08, 0.08)
-            footstep_audio.volume_db = current_step_volume + randf_range(-1.5, 1.0)
-            if not footstep_audio.playing:
-                footstep_audio.play()
+            footstep_audio.volume_db = -10.0 + randf_range(-1.5, 1.0)
+            footstep_audio.play()
         step_timer = step_interval
 
 func update_look() -> void:

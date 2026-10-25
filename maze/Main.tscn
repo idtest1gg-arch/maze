@@ -4,6 +4,10 @@
 [ext_resource type="Script" path="res://Player.gd" id="2"]
 [ext_resource type="AudioStream" path="res://footstep-on-concrete-4.wav" id="3"]
 
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
+radius = 0.35
+height = 1.2
+
 [node name="MazeRoot" type="Node3D"]
 script = ExtResource("1")
 maze_width = 21
@@ -16,10 +20,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
 script = ExtResource("2")
 speed = 4.5
 mouse_sensitivity = 0.0025
-bob_frequency = 10.0
-bob_amplitude = 0.05
-bob_vertical = 0.08
+bob_frequency = 8.0
+bob_amplitude = 0.025
+bob_vertical = 0.045
 free_fly_speed = 8.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
+shape = SubResource("CapsuleShape3D_1")
 
 [node name="Camera3D" type="Camera3D" parent="Player"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
@@ -32,12 +39,9 @@ spot_range = 16.0
 spot_angle = 32.0
 shadow_enabled = true
 
-[node name="AudioStreamPlayer3D" type="AudioStreamPlayer3D" parent="Player"]
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="Player"]
 stream = ExtResource("3")
-volume_db = -8.0
-pitch_scale = 1.0
-attenuation_model = 1
-max_distance = 18.0
+volume_db = -10.0
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(270, 0, 0)
