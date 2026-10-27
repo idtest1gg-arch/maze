@@ -7,21 +7,36 @@ var time: float = 0.0
 
 func _ready() -> void:
     base_y = global_position.y
-    _build_pickup_mesh()
+    build_battery_mesh()
 
-func _build_pickup_mesh() -> void:
-    var mesh_instance := MeshInstance3D.new()
-    var box_mesh := BoxMesh.new()
-    box_mesh.size = Vector3(0.18, 0.36, 0.18)
-    mesh_instance.mesh = box_mesh
+func build_battery_mesh() -> void:
+    var body := MeshInstance3D.new()
+    var body_mesh := CylinderMesh.new()
+    body_mesh.top_radius = 0.18
+    body_mesh.bottom_radius = 0.18
+    body_mesh.height = 0.5
+    body.mesh = body_mesh
+    body.rotation_degrees.x = 90.0
 
-    var material := StandardMaterial3D.new()
-    material.albedo_color = Color(1.0, 0.9, 0.2)
-    material.emission_enabled = true
-    material.emission = Color(1.0, 0.8, 0.2)
-    material.emission_energy = 0.8
-    mesh_instance.material_override = material
-    add_child(mesh_instance)
+    var cap := MeshInstance3D.new()
+    var cap_mesh := BoxMesh.new()
+    cap_mesh.size = Vector3(0.22, 0.12, 0.22)
+    cap.mesh = cap_mesh
+    cap.position.y = 0.22
+
+    var body_material := StandardMaterial3D.new()
+    body_material.albedo_color = Color(1.0, 0.85, 0.1)
+    body_material.emission_enabled = true
+    body_material.emission = Color(1.0, 0.75, 0.2)
+    body_material.emission_energy = 1.1
+    body.material_override = body_material
+
+    var cap_material := StandardMaterial3D.new()
+    cap_material.albedo_color = Color(0.8, 0.8, 0.8)
+    cap.material_override = cap_material
+
+    add_child(body)
+    add_child(cap)
 
 func _process(delta: float) -> void:
     time += delta

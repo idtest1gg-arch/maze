@@ -13,26 +13,37 @@ extends CharacterBody3D
 @export var free_fly_speed: float = 8.0
 @export var flashlight_drain_per_second: float = 4.5
 
+const FOOTSTEP_POOL_SIZE := 4
+
 var pitch: float = -0.5
 var yaw: float = 0.0
 var bob_time: float = 0.0
 var camera_base_position: Vector3
 var free_camera: bool = false
 var step_timer: float = 0.0
-var step_interval: float = 0.45
 var flashlight_battery: float = 100.0
 var flashlight_on: bool = true
+var footstep_pool: Array[AudioStreamPlayer] = []
 
 @onready var camera: Camera3D = $Camera3D
 @onready var flashlight: SpotLight3D = $Camera3D/SpotLight3D
-@onready var footstep_audio: AudioStreamPlayer = $AudioStreamPlayer
 @onready var battery_label: Label = $"../CanvasLayer/BatteryLabel"
 
 func _ready() -> void:
     camera_base_position = camera.position
+    build_footstep_pool()
     Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
     update_flashlight_ui()
     update_look()
+
+func build_footstep_pool() -> void:
+    for i in range(FOOTSTEP_POOL_SIZE):
+        var player := AudioStreamPlayer.new()
+        player.name = "FootstepAudio_%d" % i
+        player.stream = load("res://footstep-on-concrete-4.wav")
+        player.volume_db = -10.0
+        add_child(player)
+        footstep_pool.append(player)
 
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventKey and event.is_pressed() and event.keycode == KEY_F4:
@@ -68,11 +79,10 @@ func _physics_process(delta: float) -> void:
 
     update_walk_movement(delta)
     apply_camera_bob(delta)
+    check_pickups()
 
 func update_walk_movement(delta: float) -> void:
-    var move_speed: float = 0.0
     var input_dir := Vector2.ZERO
-
     if Input.is_key_pressed(KEY_W):
         input_dir.y += 1
     if Input.is_key_pressed(KEY_S):
@@ -94,7 +104,7 @@ func update_walk_movement(delta: float) -> void:
         move_dir = move_dir.normalized()
         velocity.x = move_dir.x * speed
         velocity.z = move_dir.z * speed
-        move_speed = Vector2(velocity.x, velocity.z).length()
+        var move_speed: float = Vector2(velocity.x, velocity.z).length()
         play_step_sound(move_speed)
     else:
         velocity.x = move_toward(velocity.x, 0.0, friction)
@@ -147,13 +157,23 @@ func apply_camera_bob(delta: float) -> void:
     camera.position = camera_base_position + Vector3(target_x, target_y, target_z) + Vector3(shake_x, shake_y, 0.0)
 
 func play_step_sound(move_speed: float) -> void:
-    var step_delay: float = clamp(0.52 - move_speed * 0.04, 0.22, 0.52)
+    var step_delay: float = clamp(0.52 - move_speed * 0.04, 0.18, 0.52)
     step_timer -= get_physics_process_delta_time()
     if step_timer <= 0.0:
-        if footstep_audio and footstep_audio.stream != null and not footstep_audio.playing:
-            footstep_audio.pitch_scale = 0.9 + randf_range(-0.1, 0.12)
-            footstep_audio.volume_db = -10.0 + randf_range(-1.5, 1.0)
-            footstep_audio.play()
+        var audio_player: AudioStreamPlayer = null
+        for footstep_player in footstep_pool:
+            if not footstep_player.playing:
+                audio_player = footstep_player
+                break
+
+        if audio_player == null:
+            audio_player = footstep_pool[0]
+
+        if audio_player != null:
+            audio_player.pitch_scale = 0.9 + randf_range(-0.1, 0.12)
+            audio_player.volume_db = -10.0 + randf_range(-1.5, 1.0)
+            audio_player.play()
+
         step_timer = step_delay
 
 func update_flashlight(delta: float) -> void:
@@ -181,20 +201,11 @@ func collect_battery(amount: float) -> void:
     flashlight_battery = clamp(flashlight_battery + amount, 0.0, 100.0)
     update_flashlight_ui()
 
-func update_look() -> void:
-    rotation.y = yaw
-    camera.rotation.x = pitch
-    camera.rotation.y = 0.0
-    camera.rotation.z = 0.0
-    flashlight.rotation.x = 0.0
-    flashlight.rotation.y = 0.0
-
-func _process(delta: float) -> void:
-    var camera_parent = get_parent()
-    if camera_parent == null:
+func check_pickups() -> void:
+    if get_parent() == null:
         return
 
-    for child in camera_parent.get_children():
+    for child in get_parent().get_children():
         if child is Node3D and child.name.begins_with("Battery"):
             var battery_node: Node3D = child
             if battery_node.global_position.distance_to(global_position) < 1.2:
@@ -203,3 +214,11 @@ func _process(delta: float) -> void:
                     pickup_amount = battery_node.get_energy_amount()
                 collect_battery(pickup_amount)
                 battery_node.queue_free()
+
+func update_look() -> void:
+    rotation.y = yaw
+    camera.rotation.x = pitch
+    camera.rotation.y = 0.0
+    camera.rotation.z = 0.0
+    flashlight.rotation.x = 0.0
+    flashlight.rotation.y = 0.0

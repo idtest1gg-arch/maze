@@ -12,6 +12,7 @@ var wall_material: StandardMaterial3D
 func _ready() -> void:
     wall_material = create_wall_material()
     generate_maze()
+    spawn_player()
 
 func create_wall_material() -> StandardMaterial3D:
     var material := StandardMaterial3D.new()
@@ -25,7 +26,7 @@ func create_wall_material() -> StandardMaterial3D:
 
 func generate_maze() -> void:
     for child in get_children():
-        if child.name.begins_with("Generated"):
+        if child.name.begins_with("Generated") or child.name.begins_with("Battery"):
             child.queue_free()
 
     if maze_width % 2 == 0:
@@ -44,6 +45,16 @@ func generate_maze() -> void:
     create_floor()
     create_walls(grid)
     spawn_batteries(grid)
+
+func spawn_player() -> void:
+    var player = get_node_or_null("Player")
+    if player == null:
+        return
+
+    var start_x: float = 1.0 - float(maze_width - 1) / 2.0
+    var start_z: float = 1.0 - float(maze_height - 1) / 2.0
+    player.position = Vector3(start_x * cell_size, 1.2, start_z * cell_size)
+    player.rotation = Vector3.ZERO
 
 func carve_maze(grid: Array, start: Vector2i) -> void:
     var stack: Array = [start]
@@ -142,7 +153,7 @@ func spawn_batteries(grid: Array) -> void:
     var open_cells: Array = []
     for y in range(maze_height):
         for x in range(maze_width):
-            if grid[y][x] == 0:
+            if grid[y][x] == 0 and Vector2i(x, y) != Vector2i(1, 1):
                 open_cells.append(Vector2i(x, y))
 
     open_cells.shuffle()
@@ -152,14 +163,16 @@ func spawn_batteries(grid: Array) -> void:
     for i in range(battery_count):
         if i >= open_cells.size():
             break
+
         var cell: Vector2i = open_cells[i]
         var battery := Node3D.new()
-        battery.name = "Battery"
+        battery.name = "Battery_%d" % i
         battery.position = Vector3(
             (cell.x - (maze_width - 1) / 2.0) * cell_size,
             1.1,
             (cell.y - (maze_height - 1) / 2.0) * cell_size
         )
+
         var battery_script = load("res://BatteryPickup.gd")
         battery.set_script(battery_script)
         add_child(battery)
