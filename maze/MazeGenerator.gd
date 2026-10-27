@@ -43,6 +43,7 @@ func generate_maze() -> void:
     carve_maze(grid, Vector2i(1, 1))
     create_floor()
     create_walls(grid)
+    spawn_batteries(grid)
 
 func carve_maze(grid: Array, start: Vector2i) -> void:
     var stack: Array = [start]
@@ -132,9 +133,33 @@ func add_wall_block(position: Vector3) -> void:
     box_mesh.size = Vector3(1.0, 1.0, 1.0)
     wall_mesh.mesh = box_mesh
     wall_mesh.scale = Vector3(cell_size, wall_height, cell_size)
-    wall_mesh.position = Vector3.ZERO
-
     wall_mesh.material_override = wall_material
 
     wall_body.add_child(wall_mesh)
     add_child(wall_body)
+
+func spawn_batteries(grid: Array) -> void:
+    var open_cells: Array = []
+    for y in range(maze_height):
+        for x in range(maze_width):
+            if grid[y][x] == 0:
+                open_cells.append(Vector2i(x, y))
+
+    open_cells.shuffle()
+    var battery_count: int = int(floor(float(open_cells.size()) / 10.0))
+    battery_count = max(1, battery_count)
+
+    for i in range(battery_count):
+        if i >= open_cells.size():
+            break
+        var cell: Vector2i = open_cells[i]
+        var battery := Node3D.new()
+        battery.name = "Battery"
+        battery.position = Vector3(
+            (cell.x - (maze_width - 1) / 2.0) * cell_size,
+            1.1,
+            (cell.y - (maze_height - 1) / 2.0) * cell_size
+        )
+        var battery_script = load("res://BatteryPickup.gd")
+        battery.set_script(battery_script)
+        add_child(battery)
