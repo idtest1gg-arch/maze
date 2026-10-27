@@ -5,7 +5,8 @@ extends Node3D
 @export var cell_size: float = 2.0
 @export var wall_height: float = 2.5
 @export var wall_color: Color = Color(0.92, 0.88, 0.8)
-@export var floor_color: Color = Color(0.12, 0.14, 0.16)
+@export var floor_color: Color = Color(0.55, 0.55, 0.55)
+@export var ceiling_color: Color = Color(0.7, 0.7, 0.7)
 
 var wall_material: StandardMaterial3D
 
@@ -44,6 +45,7 @@ func generate_maze() -> void:
     carve_maze(grid, Vector2i(1, 1))
     create_floor()
     create_walls(grid)
+    create_ceiling()
     spawn_batteries(grid)
 
 func spawn_player() -> void:
@@ -117,6 +119,19 @@ func create_floor() -> void:
 
     floor_body.add_child(floor_mesh)
     add_child(floor_body)
+
+func create_ceiling() -> void:
+    var ceiling_mesh := MeshInstance3D.new()
+    var box_mesh := BoxMesh.new()
+    box_mesh.size = Vector3(maze_width * cell_size, 0.2, maze_height * cell_size)
+    ceiling_mesh.mesh = box_mesh
+    ceiling_mesh.position = Vector3(0.0, wall_height + 0.08, 0.0)
+
+    var material := StandardMaterial3D.new()
+    material.albedo_color = ceiling_color
+    material.roughness = 0.9
+    ceiling_mesh.material_override = material
+    add_child(ceiling_mesh)
 
 func create_walls(grid: Array) -> void:
     for y in range(maze_height):

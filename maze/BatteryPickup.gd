@@ -10,33 +10,19 @@ func _ready() -> void:
     build_battery_mesh()
 
 func build_battery_mesh() -> void:
-    var body := MeshInstance3D.new()
-    var body_mesh := CylinderMesh.new()
-    body_mesh.top_radius = 0.18
-    body_mesh.bottom_radius = 0.18
-    body_mesh.height = 0.5
-    body.mesh = body_mesh
-    body.rotation_degrees.x = 90.0
+    var battery_mesh := load("res://battery_obj/battery.obj")
+    var instance := MeshInstance3D.new()
+    instance.mesh = battery_mesh
+    instance.scale = Vector3(0.45, 0.45, 0.45)
 
-    var cap := MeshInstance3D.new()
-    var cap_mesh := BoxMesh.new()
-    cap_mesh.size = Vector3(0.22, 0.12, 0.22)
-    cap.mesh = cap_mesh
-    cap.position.y = 0.22
+    var material := StandardMaterial3D.new()
+    material.albedo_texture = load("res://battery_obj/baterijaTekstura.jpg")
+    material.roughness = 0.8
+    material.metallic = 0.2
+    material.uv1_triplanar = true
+    instance.material_override = material
 
-    var body_material := StandardMaterial3D.new()
-    body_material.albedo_color = Color(1.0, 0.85, 0.1)
-    body_material.emission_enabled = true
-    body_material.emission = Color(1.0, 0.75, 0.2)
-    body_material.emission_energy = 1.1
-    body.material_override = body_material
-
-    var cap_material := StandardMaterial3D.new()
-    cap_material.albedo_color = Color(0.8, 0.8, 0.8)
-    cap.material_override = cap_material
-
-    add_child(body)
-    add_child(cap)
+    add_child(instance)
 
 func _process(delta: float) -> void:
     time += delta

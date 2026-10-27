@@ -14,6 +14,7 @@ extends CharacterBody3D
 @export var flashlight_drain_per_second: float = 4.5
 
 const FOOTSTEP_POOL_SIZE := 4
+const MAX_BATTERY_ENERGY := 200.0
 
 var pitch: float = -0.5
 var yaw: float = 0.0
@@ -186,7 +187,7 @@ func update_flashlight(delta: float) -> void:
     else:
         flashlight.light_energy = 0.0
 
-    flashlight_battery = clamp(flashlight_battery, 0.0, 100.0)
+    flashlight_battery = clamp(flashlight_battery, 0.0, MAX_BATTERY_ENERGY)
     update_flashlight_ui()
 
 func update_flashlight_ui() -> void:
@@ -198,7 +199,7 @@ func update_flashlight_ui() -> void:
         battery_label.text = "BATTERY: OFF"
 
 func collect_battery(amount: float) -> void:
-    flashlight_battery = clamp(flashlight_battery + amount, 0.0, 100.0)
+    flashlight_battery = clamp(flashlight_battery + amount, 0.0, MAX_BATTERY_ENERGY)
     update_flashlight_ui()
 
 func check_pickups() -> void:
