@@ -10,19 +10,21 @@ func _ready() -> void:
     build_battery_mesh()
 
 func build_battery_mesh() -> void:
-    var battery_mesh := load("res://battery_obj/battery.obj")
-    var instance := MeshInstance3D.new()
-    instance.mesh = battery_mesh
-    instance.scale = Vector3(0.45, 0.45, 0.45)
+    var mesh := MeshInstance3D.new()
+    var obj_mesh: Mesh = load("res://battery_obj/battery.obj")
+    mesh.mesh = obj_mesh
+    mesh.scale = Vector3(0.22, 0.22, 0.22)
+    mesh.rotation_degrees.x = -90.0
 
     var material := StandardMaterial3D.new()
     material.albedo_texture = load("res://battery_obj/baterijaTekstura.jpg")
     material.roughness = 0.8
     material.metallic = 0.2
-    material.uv1_triplanar = true
-    instance.material_override = material
+    material.uv1_triplanar = false
+    material.uv1_scale = Vector3.ONE
+    mesh.material_override = material
 
-    add_child(instance)
+    add_child(mesh)
 
 func _process(delta: float) -> void:
     time += delta

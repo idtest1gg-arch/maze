@@ -27,7 +27,7 @@ func create_wall_material() -> StandardMaterial3D:
 
 func generate_maze() -> void:
     for child in get_children():
-        if child.name.begins_with("Generated") or child.name.begins_with("Battery"):
+        if child.name.begins_with("Generated") or child.name.begins_with("Battery") or child.name == "Orb":
             child.queue_free()
 
     if maze_width % 2 == 0:
@@ -47,6 +47,7 @@ func generate_maze() -> void:
     create_walls(grid)
     create_ceiling()
     spawn_batteries(grid)
+    spawn_orb(grid)
 
 func spawn_player() -> void:
     var player = get_node_or_null("Player")
@@ -191,3 +192,74 @@ func spawn_batteries(grid: Array) -> void:
         var battery_script = load("res://BatteryPickup.gd")
         battery.set_script(battery_script)
         add_child(battery)
+
+func spawn_orb(grid: Array) -> void:
+    var farthest := find_farthest_open_cell(Vector2i(1, 1), grid)
+    if farthest == null:
+        return
+
+    var orb := Node3D.new()
+    orb.name = "Orb"
+    orb.position = Vector3(
+        (farthest.x - (maze_width - 1) / 2.0) * cell_size,
+        1.2,
+        (farthest.y - (maze_height - 1) / 2.0) * cell_size
+    )
+
+    var orb_mesh := MeshInstance3D.new()
+    var sphere := SphereMesh.new()
+    sphere.radius = 0.35
+    sphere.height = 0.7
+    orb_mesh.mesh = sphere
+
+    var material := StandardMaterial3D.new()
+    material.albedo_color = Color.BLACK
+    material.emission_enabled = true
+    material.emission = Color(0.0, 0.0, 0.0)
+    material.roughness = 0.25
+    orb_mesh.material_override = material
+    orb.add_child(orb_mesh)
+
+    var red_light := OmniLight3D.new()
+    red_light.light_color = Color(1.0, 0.0, 0.0)
+    red_light.light_energy = 3.0
+    red_light.omni_range = 5.0
+    red_light.shadow_enabled = true
+    orb.add_child(red_light)
+
+    add_child(orb)
+
+func find_farthest_open_cell(start: Vector2i, grid: Array) -> Vector2i:
+    var queue: Array = [start]
+    var visited: Dictionary = {}
+    visited[start] = true
+    var previous: Dictionary = {}
+    var farthest: Vector2i = start
+
+    while not queue.is_empty():
+        var current: Vector2i = queue.pop_front()
+        farthest = current
+
+        var directions: Array = [
+            Vector2i(1, 0),
+            Vector2i(-1, 0),
+            Vector2i(0, 1),
+            Vector2i(0, -1)
+        ]
+
+        for direction in directions:
+            var next: Vector2i = current + direction
+            if next.x < 0 or next.x >= maze_width:
+                continue
+            if next.y < 0 or next.y >= maze_height:
+                continue
+            if grid[next.y][next.x] != 0:
+                continue
+            if visited.has(next):
+                continue
+
+            visited[next] = true
+            previous[next] = current
+            queue.push_back(next)
+
+    return farthest
