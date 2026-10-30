@@ -1,5 +1,6 @@
 extends Node3D
 
+@export var maze_seed: int = 0
 @export var maze_width: int = 21
 @export var maze_height: int = 21
 @export var cell_size: float = 2.0
@@ -9,11 +10,18 @@ extends Node3D
 
 var wall_material: StandardMaterial3D
 var maze_grid: Array = []
+var rng: RandomNumberGenerator
 
 func _ready() -> void:
+    rng = RandomNumberGenerator.new()
+    if maze_seed != 0:
+        rng.seed = maze_seed
+    else:
+        rng.randomize()
     wall_material = create_wall_material()
     generate_maze()
     spawn_player()
+    spawn_orb()
 
 func create_wall_material() -> StandardMaterial3D:
     var material := StandardMaterial3D.new()
@@ -47,17 +55,31 @@ func generate_maze() -> void:
     create_floor()
     create_walls(maze_grid)
     spawn_batteries(maze_grid)
-    spawn_orb(maze_grid)
 
 func spawn_player() -> void:
+    var player_scene := preload("res://Player.tscn")
     var player = get_node_or_null("Player")
-    if player == null:
+    if player != null:
         return
+    player = player_scene.instantiate()
+    player.name = "Player"
+    add_child(player)
 
     var start_x: float = 1.0 - float(maze_width - 1) / 2.0
     var start_z: float = 1.0 - float(maze_height - 1) / 2.0
     player.position = Vector3(start_x * cell_size, 1.2, start_z * cell_size)
     player.rotation = Vector3.ZERO
+
+func spawn_orb() -> void:
+    var existing_orb = get_node_or_null("Orb")
+    if existing_orb != null:
+        return
+
+    var orb_scene := preload("res://Orb.tscn")
+    var orb = orb_scene.instantiate()
+    orb.name = "Orb"
+    orb.position = cell_to_world(find_farthest_open_cell(Vector2i(1, 1), maze_grid))
+    add_child(orb)
 
 func carve_maze(grid: Array, start: Vector2i) -> void:
     var stack: Array = [start]
@@ -88,7 +110,7 @@ func carve_maze(grid: Array, start: Vector2i) -> void:
             stack.pop_back()
             continue
 
-        var delta: Vector2i = options[randi() % options.size()]
+        var delta: Vector2i = options[rng.randi_range(0, options.size() - 1)]
         var next: Vector2i = current + delta
         var mid: Vector2i = current + delta / 2
 
@@ -129,7 +151,7 @@ func remove_dead_ends(grid: Array) -> void:
                             options.append(Vector2i(nx, ny))
 
                     if not options.is_empty():
-                        var target: Vector2i = options[randi() % options.size()]
+                        var target: Vector2i = options[rng.randi_range(0, options.size() - 1)]
                         grid[target.y][target.x] = 0
                         changed = true
 
@@ -200,65 +222,18 @@ func spawn_batteries(grid: Array) -> void:
     var battery_count: int = int(floor(float(open_cells.size()) / 10.0))
     battery_count = max(1, battery_count)
 
-    for i in range(battery_count):
-        if i >= open_cells.size():
-            break
-
+    var battery_scene := preload("res://BatteryPickup.tscn")
+    for i in range(min(battery_count, open_cells.size())):
         var cell: Vector2i = open_cells[i]
-        var battery := Node3D.new()
+        var battery = battery_scene.instantiate()
         battery.name = "Battery_%d" % i
-        battery.position = Vector3(
-            (cell.x - (maze_width - 1) / 2.0) * cell_size,
-            1.1,
-            (cell.y - (maze_height - 1) / 2.0) * cell_size
-        )
-
-        var battery_script = load("res://BatteryPickup.gd")
-        battery.set_script(battery_script)
+        battery.position = cell_to_world(cell)
+        battery.position.y = 1.1
         add_child(battery)
-
-func spawn_orb(grid: Array) -> void:
-    var farthest := find_farthest_open_cell(Vector2i(1, 1), grid)
-    if farthest == null:
-        return
-
-    var orb := Node3D.new()
-    orb.name = "Orb"
-    orb.position = Vector3(
-        (farthest.x - (maze_width - 1) / 2.0) * cell_size,
-        1.2,
-        (farthest.y - (maze_height - 1) / 2.0) * cell_size
-    )
-
-    var orb_mesh := MeshInstance3D.new()
-    var sphere := SphereMesh.new()
-    sphere.radius = 0.35
-    sphere.height = 0.7
-    orb_mesh.mesh = sphere
-
-    var material := StandardMaterial3D.new()
-    material.albedo_color = Color.BLACK
-    material.emission_enabled = true
-    material.emission = Color(0.0, 0.0, 0.0)
-    material.roughness = 0.25
-    orb_mesh.material_override = material
-    orb.add_child(orb_mesh)
-
-    var red_light := OmniLight3D.new()
-    red_light.light_color = Color(1.0, 0.0, 0.0)
-    red_light.light_energy = 3.0
-    red_light.omni_range = 5.0
-    red_light.shadow_enabled = true
-    orb.add_child(red_light)
-
-    var orb_script = load("res://Orb.gd")
-    orb.set_script(orb_script)
-    add_child(orb)
 
 func find_farthest_open_cell(start: Vector2i, grid: Array) -> Vector2i:
     var queue: Array = [start]
-    var visited: Dictionary = {}
-    visited[start] = true
+    var visited: Dictionary = {start: true}
     var farthest: Vector2i = start
 
     while not queue.is_empty():

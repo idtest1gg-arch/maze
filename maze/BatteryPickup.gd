@@ -1,16 +1,21 @@
 extends Node3D
 
 @export var energy_amount: float = 50.0
+@export var bob_speed: float = 2.2
+@export var bob_height: float = 0.18
 
 var base_y: float = 0.0
 var time: float = 0.0
 
 func _ready() -> void:
     base_y = global_position.y
+    if has_node("MeshInstance3D"):
+        return
     build_battery_mesh()
 
 func build_battery_mesh() -> void:
     var mesh := MeshInstance3D.new()
+    mesh.name = "MeshInstance3D"
     var obj_mesh: Mesh = load("res://battery_obj/battery.obj")
     mesh.mesh = obj_mesh
     mesh.scale = Vector3(0.22, 0.22, 0.22)
@@ -29,7 +34,7 @@ func build_battery_mesh() -> void:
 func _process(delta: float) -> void:
     time += delta
     rotation.y += delta * 2.0
-    position.y = base_y + sin(time * 2.2) * 0.18
+    position.y = base_y + sin(time * bob_speed) * bob_height
 
 func get_energy_amount() -> float:
     return energy_amount

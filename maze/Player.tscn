@@ -1,0 +1,38 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://Player.gd" id="1"]
+[ext_resource type="AudioStream" path="res://footstep-on-concrete-4.wav" id="2"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
+radius = 0.35
+height = 1.2
+
+[node name="Player" type="CharacterBody3D"]
+script = ExtResource("1")
+speed = 4.5
+mouse_sensitivity = 0.0025
+bob_frequency = 8.0
+bob_amplitude = 0.025
+bob_vertical = 0.045
+free_fly_speed = 8.0
+flashlight_drain_per_second = 4.5
+flashlight_max_energy = 200.0
+flashlight_start_energy = 100.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape3D_1")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+current = true
+fov = 75.0
+
+[node name="SpotLight3D" type="SpotLight3D" parent="Camera3D"]
+light_energy = 2.2
+spot_range = 16.0
+spot_angle = 32.0
+shadow_enabled = true
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("2")
+volume_db = -10.0

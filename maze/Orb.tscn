@@ -1,0 +1,32 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Orb.gd" id="1"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_1"]
+radius = 0.35
+height = 0.7
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
+albedo_color = Color(0, 0, 0, 1)
+emission_enabled = true
+emission = Color(0, 0, 0, 1)
+roughness = 0.25
+
+[node name="Orb" type="Node3D"]
+script = ExtResource("1")
+chase_speed = 2.6
+pursuit_distance = 1.0
+orb_y = 1.2
+orb_radius = 0.35
+light_energy = 3.0
+light_range = 5.0
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_1")
+material_override = SubResource("StandardMaterial3D_1")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="."]
+light_color = Color(1, 0, 0, 1)
+light_energy = 3.0
+omni_range = 5.0
+shadow_enabled = true

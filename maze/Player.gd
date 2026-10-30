@@ -12,9 +12,10 @@ extends CharacterBody3D
 @export var bob_vertical: float = 0.045
 @export var free_fly_speed: float = 8.0
 @export var flashlight_drain_per_second: float = 4.5
+@export var flashlight_max_energy: float = 200.0
+@export var flashlight_start_energy: float = 100.0
 
 const FOOTSTEP_POOL_SIZE := 4
-const MAX_BATTERY_ENERGY := 200.0
 
 var pitch: float = -0.5
 var yaw: float = 0.0
@@ -31,6 +32,7 @@ var footstep_pool: Array[AudioStreamPlayer] = []
 @onready var battery_label: Label = $"../CanvasLayer/BatteryLabel"
 
 func _ready() -> void:
+    flashlight_battery = flashlight_start_energy
     camera_base_position = camera.position
     build_footstep_pool()
     Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -103,8 +105,7 @@ func update_walk_movement(delta: float) -> void:
         move_dir = move_dir.normalized()
         velocity.x = move_dir.x * speed
         velocity.z = move_dir.z * speed
-        var move_speed: float = Vector2(velocity.x, velocity.z).length()
-        play_step_sound(move_speed)
+        play_step_sound(Vector2(velocity.x, velocity.z).length())
     else:
         velocity.x = move_toward(velocity.x, 0.0, friction)
         velocity.z = move_toward(velocity.z, 0.0, friction)
@@ -131,8 +132,7 @@ func update_free_camera(delta: float) -> void:
     if move_vec.length_squared() > 0.0:
         move_vec = move_vec.normalized() * free_fly_speed
         global_position += move_vec * delta
-        var move_speed: float = move_vec.length() * 0.7
-        play_step_sound(move_speed)
+        play_step_sound(move_vec.length() * 0.7)
     else:
         step_timer = 0.0
 
@@ -143,7 +143,10 @@ func apply_camera_bob(delta: float) -> void:
     else:
         bob_time = lerp(bob_time, 0.0, delta * 7.0)
 
-    var bob_strength: float = clamp(move_speed / max(speed, 0.001), 0.0, 1.0)
+    var bob_strength: float = 0.0
+    if move_speed > 0.1:
+        bob_strength = clamp(move_speed / max(speed, 0.001), 0.0, 1.0)
+
     var target_x: float = sin(bob_time * 2.0) * bob_amplitude * 0.6 * (0.5 + bob_strength)
     var target_y: float = sin(bob_time * 2.0 + PI * 0.5) * bob_vertical * 0.7 * (0.5 + bob_strength)
     var target_z: float = cos(bob_time * 2.0) * bob_amplitude * 0.2
@@ -182,7 +185,7 @@ func update_flashlight(delta: float) -> void:
     else:
         flashlight.light_energy = 0.0
 
-    flashlight_battery = clamp(flashlight_battery, 0.0, MAX_BATTERY_ENERGY)
+    flashlight_battery = clamp(flashlight_battery, 0.0, flashlight_max_energy)
     update_flashlight_ui()
 
 func update_flashlight_ui() -> void:
@@ -194,7 +197,7 @@ func update_flashlight_ui() -> void:
         battery_label.text = "BATTERY: OFF"
 
 func collect_battery(amount: float) -> void:
-    flashlight_battery = clamp(flashlight_battery + amount, 0.0, MAX_BATTERY_ENERGY)
+    flashlight_battery = clamp(flashlight_battery + amount, 0.0, flashlight_max_energy)
     update_flashlight_ui()
 
 func check_pickups() -> void:
@@ -210,10 +213,6 @@ func check_pickups() -> void:
                     pickup_amount = battery_node.get_energy_amount()
                 collect_battery(pickup_amount)
                 battery_node.queue_free()
-
-func restart_level() -> void:
-    if get_tree() != null:
-        get_tree().reload_current_scene()
 
 func update_look() -> void:
     rotation.y = yaw

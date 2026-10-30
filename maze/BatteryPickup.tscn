@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://BatteryPickup.gd" id="1"]
+
+[node name="BatteryPickup" type="Node3D"]
+script = ExtResource("1")
+energy_amount = 50.0
+bob_speed = 2.2
+bob_height = 0.18
