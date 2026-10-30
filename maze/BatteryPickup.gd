@@ -14,7 +14,8 @@ func build_battery_mesh() -> void:
     var obj_mesh: Mesh = load("res://battery_obj/battery.obj")
     mesh.mesh = obj_mesh
     mesh.scale = Vector3(0.22, 0.22, 0.22)
-    mesh.rotation_degrees.x = -90.0
+    mesh.rotation_degrees.x = 90.0
+    mesh.rotation_degrees.z = 0.0
 
     var material := StandardMaterial3D.new()
     material.albedo_texture = load("res://battery_obj/baterijaTekstura.jpg")

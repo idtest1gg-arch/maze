@@ -64,10 +64,8 @@ func _unhandled_input(event: InputEvent) -> void:
         pitch -= event.relative.y * mouse_sensitivity
         pitch = clamp(pitch, min_pitch, max_pitch)
         update_look()
-
     elif event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
         Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-
     elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed() and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
         Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
@@ -145,10 +143,7 @@ func apply_camera_bob(delta: float) -> void:
     else:
         bob_time = lerp(bob_time, 0.0, delta * 7.0)
 
-    var bob_strength: float = 0.0
-    if move_speed > 0.1:
-        bob_strength = clamp(move_speed / max(speed, 0.001), 0.0, 1.0)
-
+    var bob_strength: float = clamp(move_speed / max(speed, 0.001), 0.0, 1.0)
     var target_x: float = sin(bob_time * 2.0) * bob_amplitude * 0.6 * (0.5 + bob_strength)
     var target_y: float = sin(bob_time * 2.0 + PI * 0.5) * bob_vertical * 0.7 * (0.5 + bob_strength)
     var target_z: float = cos(bob_time * 2.0) * bob_amplitude * 0.2
@@ -215,6 +210,10 @@ func check_pickups() -> void:
                     pickup_amount = battery_node.get_energy_amount()
                 collect_battery(pickup_amount)
                 battery_node.queue_free()
+
+func restart_level() -> void:
+    if get_tree() != null:
+        get_tree().reload_current_scene()
 
 func update_look() -> void:
     rotation.y = yaw

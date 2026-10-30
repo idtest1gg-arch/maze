@@ -4,9 +4,7 @@ extends Node3D
 @export var maze_height: int = 21
 @export var cell_size: float = 2.0
 @export var wall_height: float = 2.5
-@export var wall_color: Color = Color(0.92, 0.88, 0.8)
 @export var floor_color: Color = Color(0.55, 0.55, 0.55)
-@export var ceiling_color: Color = Color(0.7, 0.7, 0.7)
 
 var wall_material: StandardMaterial3D
 
@@ -43,9 +41,9 @@ func generate_maze() -> void:
         grid.append(row)
 
     carve_maze(grid, Vector2i(1, 1))
+    remove_dead_ends(grid)
     create_floor()
     create_walls(grid)
-    create_ceiling()
     spawn_batteries(grid)
     spawn_orb(grid)
 
@@ -96,6 +94,47 @@ func carve_maze(grid: Array, start: Vector2i) -> void:
         grid[next.y][next.x] = 0
         stack.push_back(next)
 
+func remove_dead_ends(grid: Array) -> void:
+    var changed: bool = true
+    while changed:
+        changed = false
+        for y in range(1, maze_height - 1):
+            for x in range(1, maze_width - 1):
+                if grid[y][x] != 0:
+                    continue
+
+                var open_count: int = 0
+                var directions: Array = [
+                    Vector2i(1, 0),
+                    Vector2i(-1, 0),
+                    Vector2i(0, 1),
+                    Vector2i(0, -1)
+                ]
+                for direction in directions:
+                    var nx: int = x + direction.x
+                    var ny: int = y + direction.y
+                    if nx <= 0 or nx >= maze_width - 1:
+                        continue
+                    if ny <= 0 or ny >= maze_height - 1:
+                        continue
+                    if grid[ny][nx] == 0:
+                        open_count += 1
+
+                if open_count > 1:
+                    continue
+
+                for direction in directions:
+                    var nx: int = x + direction.x
+                    var ny: int = y + direction.y
+                    if nx <= 0 or nx >= maze_width - 1:
+                        continue
+                    if ny <= 0 or ny >= maze_height - 1:
+                        continue
+                    if grid[ny][nx] == 1:
+                        grid[ny][nx] = 0
+                        changed = true
+                        break
+
 func create_floor() -> void:
     var floor_body := StaticBody3D.new()
     floor_body.name = "GeneratedFloor"
@@ -120,19 +159,6 @@ func create_floor() -> void:
 
     floor_body.add_child(floor_mesh)
     add_child(floor_body)
-
-func create_ceiling() -> void:
-    var ceiling_mesh := MeshInstance3D.new()
-    var box_mesh := BoxMesh.new()
-    box_mesh.size = Vector3(maze_width * cell_size, 0.2, maze_height * cell_size)
-    ceiling_mesh.mesh = box_mesh
-    ceiling_mesh.position = Vector3(0.0, wall_height + 0.08, 0.0)
-
-    var material := StandardMaterial3D.new()
-    material.albedo_color = ceiling_color
-    material.roughness = 0.9
-    ceiling_mesh.material_override = material
-    add_child(ceiling_mesh)
 
 func create_walls(grid: Array) -> void:
     for y in range(maze_height):
@@ -194,7 +220,7 @@ func spawn_batteries(grid: Array) -> void:
         add_child(battery)
 
 func spawn_orb(grid: Array) -> void:
-    var farthest := find_farthest_open_cell(Vector2i(1, 1), grid)
+    var farthest: Vector2i = find_farthest_open_cell(Vector2i(1, 1), grid)
     if farthest == null:
         return
 
@@ -206,34 +232,19 @@ func spawn_orb(grid: Array) -> void:
         (farthest.y - (maze_height - 1) / 2.0) * cell_size
     )
 
-    var orb_mesh := MeshInstance3D.new()
-    var sphere := SphereMesh.new()
-    sphere.radius = 0.35
-    sphere.height = 0.7
-    orb_mesh.mesh = sphere
-
-    var material := StandardMaterial3D.new()
-    material.albedo_color = Color.BLACK
-    material.emission_enabled = true
-    material.emission = Color(0.0, 0.0, 0.0)
-    material.roughness = 0.25
-    orb_mesh.material_override = material
-    orb.add_child(orb_mesh)
-
-    var red_light := OmniLight3D.new()
-    red_light.light_color = Color(1.0, 0.0, 0.0)
-    red_light.light_energy = 3.0
-    red_light.omni_range = 5.0
-    red_light.shadow_enabled = true
-    orb.add_child(red_light)
-
+    var orb_script = load("res://Orb.gd")
+    orb.set_script(orb_script)
+    orb.set("player", get_node_or_null("Player"))
+    orb.set("grid", grid)
+    orb.set("maze_width", maze_width)
+    orb.set("maze_height", maze_height)
+    orb.set("cell_size", cell_size)
     add_child(orb)
 
 func find_farthest_open_cell(start: Vector2i, grid: Array) -> Vector2i:
     var queue: Array = [start]
     var visited: Dictionary = {}
     visited[start] = true
-    var previous: Dictionary = {}
     var farthest: Vector2i = start
 
     while not queue.is_empty():
@@ -259,7 +270,6 @@ func find_farthest_open_cell(start: Vector2i, grid: Array) -> Vector2i:
                 continue
 
             visited[next] = true
-            previous[next] = current
             queue.push_back(next)
 
     return farthest
