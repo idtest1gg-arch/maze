@@ -1,59 +1,50 @@
 extends Node3D
 
+var maze: Node3D
 var player: Node3D
-var grid: Array
-var maze_width: int = 21
-var maze_height: int = 21
+var grid: Array = []
 var cell_size: float = 2.0
-var move_speed: float = 2.25
-var current_path: Array = []
+var move_speed: float = 2.6
+
+func _ready() -> void:
+    maze = get_parent()
+    player = maze.get_node("Player")
+    grid = maze.maze_grid
+    cell_size = maze.cell_size
 
 func _process(delta: float) -> void:
-    if player == null:
-        return
-    if grid == null:
+    if player == null or maze == null:
         return
 
-    var player_cell: Vector2i = world_to_cell(player.global_position)
-    var orb_cell: Vector2i = world_to_cell(global_position)
-    if player_cell == orb_cell:
-        if player.has_method("restart_level"):
-            player.restart_level()
-        return
+    if grid.is_empty():
+        grid = maze.maze_grid
 
-    current_path = find_path(orb_cell, player_cell)
-    if current_path.size() <= 1:
-        return
+    var player_cell: Vector2i = maze.world_to_cell(player.global_position)
+    var orb_cell: Vector2i = maze.world_to_cell(global_position)
+    var next_cell: Vector2i = orb_cell
 
-    var next_cell: Vector2i = current_path[1]
-    var target_position: Vector3 = Vector3(
-        (next_cell.x - (maze_width - 1) / 2.0) * cell_size,
-        1.2,
-        (next_cell.y - (maze_height - 1) / 2.0) * cell_size
-    )
+    var path: Array = a_star(orb_cell, player_cell)
+    if path.size() > 1:
+        next_cell = path[1]
 
-    var direction := target_position - global_position
-    direction.y = 0.0
-    if direction.length() > 0.05:
-        global_position += direction.normalized() * move_speed * delta
+    var target_pos: Vector3 = maze.cell_to_world(next_cell)
+    target_pos.y = 1.2
+    var dir: Vector3 = target_pos - global_position
+    if dir.length_squared() > 0.01:
+        dir = dir.normalized()
+        global_position += dir * move_speed * delta
 
-    if global_position.distance_to(player.global_position) < 1.1:
-        if player.has_method("restart_level"):
-            player.restart_level()
+    if global_position.distance_to(player.global_position) < 1.0:
+        get_tree().reload_current_scene()
 
-func world_to_cell(world_pos: Vector3) -> Vector2i:
-    var x: int = int(round((world_pos.x / cell_size) + (maze_width - 1) / 2.0))
-    var y: int = int(round((world_pos.z / cell_size) + (maze_height - 1) / 2.0))
-    return Vector2i(x, y)
-
-func find_path(start: Vector2i, goal: Vector2i) -> Array:
-    var queue: Array = [start]
-    var visited: Dictionary = {}
-    visited[start] = true
+func a_star(start: Vector2i, goal: Vector2i) -> Array:
+    var frontier: Array = [start]
     var came_from: Dictionary = {}
+    var visited: Dictionary = {start: true}
+    var path: Array = []
 
-    while not queue.is_empty():
-        var current: Vector2i = queue.pop_front()
+    while not frontier.is_empty():
+        var current: Vector2i = frontier.pop_front()
         if current == goal:
             break
 
@@ -64,29 +55,24 @@ func find_path(start: Vector2i, goal: Vector2i) -> Array:
             Vector2i(0, -1)
         ]
 
-        for direction in directions:
-            var next: Vector2i = current + direction
-            if next.x < 0 or next.x >= maze_width:
-                continue
-            if next.y < 0 or next.y >= maze_height:
-                continue
-            if grid[next.y][next.x] != 0:
+        for dir in directions:
+            var next: Vector2i = current + dir
+            if not maze.is_walkable(next):
                 continue
             if visited.has(next):
                 continue
 
             visited[next] = true
             came_from[next] = current
-            queue.push_back(next)
+            frontier.push_back(next)
 
-    var path: Array = []
-    var current_cell: Vector2i = goal
-    while true:
-        path.push_front(current_cell)
-        if current_cell == start:
-            break
-        if not came_from.has(current_cell):
-            return []
-        current_cell = came_from[current_cell]
+    if not came_from.has(goal):
+        return [start]
+
+    var cursor: Vector2i = goal
+    path.push_front(cursor)
+    while cursor != start:
+        cursor = came_from[cursor]
+        path.push_front(cursor)
 
     return path

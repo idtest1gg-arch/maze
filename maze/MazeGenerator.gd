@@ -4,9 +4,11 @@ extends Node3D
 @export var maze_height: int = 21
 @export var cell_size: float = 2.0
 @export var wall_height: float = 2.5
+@export var wall_color: Color = Color(0.92, 0.88, 0.8)
 @export var floor_color: Color = Color(0.55, 0.55, 0.55)
 
 var wall_material: StandardMaterial3D
+var maze_grid: Array = []
 
 func _ready() -> void:
     wall_material = create_wall_material()
@@ -33,19 +35,19 @@ func generate_maze() -> void:
     if maze_height % 2 == 0:
         maze_height += 1
 
-    var grid: Array = []
+    maze_grid = []
     for y in range(maze_height):
         var row: Array = []
         for x in range(maze_width):
             row.append(1)
-        grid.append(row)
+        maze_grid.append(row)
 
-    carve_maze(grid, Vector2i(1, 1))
-    remove_dead_ends(grid)
+    carve_maze(maze_grid, Vector2i(1, 1))
+    remove_dead_ends(maze_grid)
     create_floor()
-    create_walls(grid)
-    spawn_batteries(grid)
-    spawn_orb(grid)
+    create_walls(maze_grid)
+    spawn_batteries(maze_grid)
+    spawn_orb(maze_grid)
 
 func spawn_player() -> void:
     var player = get_node_or_null("Player")
@@ -95,7 +97,7 @@ func carve_maze(grid: Array, start: Vector2i) -> void:
         stack.push_back(next)
 
 func remove_dead_ends(grid: Array) -> void:
-    var changed: bool = true
+    var changed := true
     while changed:
         changed = false
         for y in range(1, maze_height - 1):
@@ -103,37 +105,33 @@ func remove_dead_ends(grid: Array) -> void:
                 if grid[y][x] != 0:
                     continue
 
-                var open_count: int = 0
-                var directions: Array = [
-                    Vector2i(1, 0),
-                    Vector2i(-1, 0),
-                    Vector2i(0, 1),
-                    Vector2i(0, -1)
-                ]
-                for direction in directions:
-                    var nx: int = x + direction.x
-                    var ny: int = y + direction.y
+                var neighbors: int = 0
+                for dir in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+                    var nx: int = x + dir.x
+                    var ny: int = y + dir.y
                     if nx <= 0 or nx >= maze_width - 1:
                         continue
                     if ny <= 0 or ny >= maze_height - 1:
                         continue
                     if grid[ny][nx] == 0:
-                        open_count += 1
+                        neighbors += 1
 
-                if open_count > 1:
-                    continue
+                if neighbors <= 1:
+                    var options: Array = []
+                    for dir in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+                        var nx: int = x + dir.x
+                        var ny: int = y + dir.y
+                        if nx <= 0 or nx >= maze_width - 1:
+                            continue
+                        if ny <= 0 or ny >= maze_height - 1:
+                            continue
+                        if grid[ny][nx] == 1:
+                            options.append(Vector2i(nx, ny))
 
-                for direction in directions:
-                    var nx: int = x + direction.x
-                    var ny: int = y + direction.y
-                    if nx <= 0 or nx >= maze_width - 1:
-                        continue
-                    if ny <= 0 or ny >= maze_height - 1:
-                        continue
-                    if grid[ny][nx] == 1:
-                        grid[ny][nx] = 0
+                    if not options.is_empty():
+                        var target: Vector2i = options[randi() % options.size()]
+                        grid[target.y][target.x] = 0
                         changed = true
-                        break
 
 func create_floor() -> void:
     var floor_body := StaticBody3D.new()
@@ -220,7 +218,7 @@ func spawn_batteries(grid: Array) -> void:
         add_child(battery)
 
 func spawn_orb(grid: Array) -> void:
-    var farthest: Vector2i = find_farthest_open_cell(Vector2i(1, 1), grid)
+    var farthest := find_farthest_open_cell(Vector2i(1, 1), grid)
     if farthest == null:
         return
 
@@ -232,13 +230,29 @@ func spawn_orb(grid: Array) -> void:
         (farthest.y - (maze_height - 1) / 2.0) * cell_size
     )
 
+    var orb_mesh := MeshInstance3D.new()
+    var sphere := SphereMesh.new()
+    sphere.radius = 0.35
+    sphere.height = 0.7
+    orb_mesh.mesh = sphere
+
+    var material := StandardMaterial3D.new()
+    material.albedo_color = Color.BLACK
+    material.emission_enabled = true
+    material.emission = Color(0.0, 0.0, 0.0)
+    material.roughness = 0.25
+    orb_mesh.material_override = material
+    orb.add_child(orb_mesh)
+
+    var red_light := OmniLight3D.new()
+    red_light.light_color = Color(1.0, 0.0, 0.0)
+    red_light.light_energy = 3.0
+    red_light.omni_range = 5.0
+    red_light.shadow_enabled = true
+    orb.add_child(red_light)
+
     var orb_script = load("res://Orb.gd")
     orb.set_script(orb_script)
-    orb.set("player", get_node_or_null("Player"))
-    orb.set("grid", grid)
-    orb.set("maze_width", maze_width)
-    orb.set("maze_height", maze_height)
-    orb.set("cell_size", cell_size)
     add_child(orb)
 
 func find_farthest_open_cell(start: Vector2i, grid: Array) -> Vector2i:
@@ -273,3 +287,22 @@ func find_farthest_open_cell(start: Vector2i, grid: Array) -> Vector2i:
             queue.push_back(next)
 
     return farthest
+
+func world_to_cell(world_pos: Vector3) -> Vector2i:
+    var x: int = int(round((world_pos.x / cell_size) + float(maze_width - 1) / 2.0))
+    var y: int = int(round((world_pos.z / cell_size) + float(maze_height - 1) / 2.0))
+    return Vector2i(x, y)
+
+func cell_to_world(cell: Vector2i) -> Vector3:
+    return Vector3(
+        (cell.x - (maze_width - 1) / 2.0) * cell_size,
+        1.2,
+        (cell.y - (maze_height - 1) / 2.0) * cell_size
+    )
+
+func is_walkable(cell: Vector2i) -> bool:
+    if cell.x < 0 or cell.x >= maze_width:
+        return false
+    if cell.y < 0 or cell.y >= maze_height:
+        return false
+    return maze_grid[cell.y][cell.x] == 0
